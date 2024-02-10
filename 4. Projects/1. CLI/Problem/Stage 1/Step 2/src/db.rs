@@ -1,4 +1,6 @@
 use anyhow::Result;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::models::{DBState, Epic, Story, Status};
 
@@ -7,17 +9,21 @@ trait Database {
     fn write_db(&self, db_state: &DBState) -> Result<()>;
 }
 
+#[derive(Serialize, Deserialize)]
 struct JSONFileDatabase {
     pub file_path: String
 }
 
 impl Database for JSONFileDatabase {
     fn read_db(&self) -> Result<DBState> {
-        todo!() // read the content's of self.file_path and deserialize it using serde
+        let database_state: DBState = serde_json::from_str(&self.file_path).expect("JSON was not correctly parsed from file path");
+        Ok(database_state)
     }
 
     fn write_db(&self, db_state: &DBState) -> Result<()> {
-        todo!() // serialize db_state to json and store it in self.file_path
+        let database_state_string = serde_json::to_string(&db_state).expect("JSON was not correctly created from the database state");
+        database_state_string.write(self.file_path).expect("JSON was not correctly written to file path");
+        Ok(())
     }
 }
 
