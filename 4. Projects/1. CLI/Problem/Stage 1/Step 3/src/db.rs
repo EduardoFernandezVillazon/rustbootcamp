@@ -91,11 +91,28 @@ impl JiraDatabase {
     }
     
     pub fn update_epic_status(&self, epic_id: u32, status: Status) -> Result<()> {
-        todo!()
+        let mut db_state = self.read_db()?;
+
+        // Check if the epic_id is valid
+
+        if db_state.epics.keys().any(|key| *key==epic_id){
+            db_state.epics.get_mut(&epic_id).unwrap().status = status;
+            self.database.write_db(&db_state)?;
+            Ok(())
+        }
+        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
     }
     
     pub fn update_story_status(&self, story_id: u32, status: Status) -> Result<()> {
-        todo!()
+        let mut db_state = self.read_db()?;
+
+        // Check if the story_id is valid
+        if db_state.stories.keys().any(|key| *key==story_id){
+            db_state.stories.get_mut(&story_id).unwrap().status = status;
+            self.database.write_db(&db_state)?;
+            Ok(())
+        }
+        else {Err(anyhow!("Invalid story_id provided: {}", story_id))}
     }
 }
 
