@@ -1,4 +1,5 @@
 use anyhow::Result;
+use anyhow::Context;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fs;
@@ -16,15 +17,27 @@ struct JSONFileDatabase {
 }
 
 impl Database for JSONFileDatabase {
-    fn read_db(&self) -> Result<DBState> {
-        let database_state: DBState = serde_json::from_str(&self.file_path).expect("JSON was not correctly parsed from file path");
-        Ok(database_state)
+    fn read_db(&self) -> Result<DBState, anyhow::Error> {
+        let database_content = fs::read_to_string(&self.file_path)?;
+        let database_state = serde_json::from_str(&database_content).with_context(|| format!("Could not parse JSON from database located in {}", self.file_path));
+        println!("{:?}", database_state);
+        match database_state{
+            Ok(db_state) => Ok(db_state),
+            Err(e) => Err(e)
+        }
+
     }
 
-    fn write_db(&self, db_state: &DBState) -> Result<()> {
-        let database_state_string = serde_json::to_string(&db_state).expect("JSON was not correctly created from the database state");
-        fs::write(&self.file_path, database_state_string).expect("JSON was not correctly written to file path");
-        Ok(())
+    fn write_db(&self, db_state: &DBState) -> Result<(), anyhow::Error> {
+        let database_state_string = serde_json::to_string(&db_state).with_context(|| format!("Database state {:?} was not correctly serialized to JSON string", &db_state));
+        match database_state_string{
+            Ok(database_state_string) => {
+                fs::write(&self.file_path, database_state_string).with_context(|| format!("Could not write JSON to database located in{}", self.file_path))?;
+                Ok(())
+            },
+            Err(e) => Err(e)
+        }
+        
     }
 }
 
@@ -99,7 +112,6 @@ mod tests {
             let read_result = db.read_db().unwrap();
 
             assert_eq!(write_result.is_ok(), true);
-            // TODO: fix this error by deriving the appropriate traits for DBState
             assert_eq!(read_result, state);
         }
     }

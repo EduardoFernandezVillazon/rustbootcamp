@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use core::fmt::Debug;
 use serde::Deserialize;
 use serde::Serialize;
@@ -56,6 +57,12 @@ pub struct DBState {
 }
 
 impl Debug for DBState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DBState {{ last_item_id: {}, epics: {:?}, stories: {:?} }}", self.last_item_id, self.epics, self.stories)
+    }
+}
+
+impl Display for DBState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "DBState {{ last_item_id: {}, epics: {:?}, stories: {:?} }}", self.last_item_id, self.epics, self.stories)
     }
