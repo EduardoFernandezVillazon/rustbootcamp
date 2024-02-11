@@ -58,21 +58,17 @@ impl JiraDatabase {
         let mut db_state = self.read_db()?;
         
         // Check if the epic_id is valid
-        if db_state.epics.keys().any(|key| *key==epic_id){
             
             // The function needs to delete the associated stories first
-            let story_keys = &db_state.epics.get(&epic_id).unwrap().stories;
-            for story_id in story_keys.clone() {
-                self.delete_story(epic_id, story_id)?;
+            for story_id in &db_state.epics.get(&epic_id).ok_or_else(|| anyhow!("Could not find epic {} in dstabase!", epic_id))?.stories {
+                db_state.stories.remove(&story_id).with_context(||format!("Failed to remove story with story_id={story_id}"))?;
             }
             // The function then needs to delete the epic
             db_state.epics.remove(&epic_id);
             // The function will then write to the database
             self.database.write_db(&db_state)?;
             Ok(())
-        }
 
-        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
 
     }
     
@@ -80,18 +76,18 @@ impl JiraDatabase {
         let mut db_state = self.read_db()?;
         
         // Check if the epic_id and the story_id are valid
-        if db_state.epics.keys().any(|key| *key==epic_id)&&db_state.stories.keys().any(|key| *key==story_id){
-            
+        if db_state.epics.keys().any(|key| *key==epic_id)&&db_state.epics.get(&epic_id).ok_or_else(|| anyhow!("Could not find epic {} in dstabase!", epic_id))?.stories.iter().any(|key| *key==story_id){ 
+
+            // The function then needs to delete the story
+            db_state.stories.remove(&story_id).with_context(||format!("Failed to remove story with story_id={story_id}"))?;
             // The function needs to delete the story association in the epic
             db_state.epics.get_mut(&epic_id).unwrap().stories.retain(|id| *id!=story_id);
-            // The function then needs to delete the story
-            db_state.stories.remove(&story_id);
             // The function will then write to the database
             self.database.write_db(&db_state)?;
             Ok(())
         }
 
-        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
+        else {Err(anyhow!("Invalid epic_id story_id pair provided: {}, {}", epic_id, story_id))}
     }
     
     pub fn update_epic_status(&self, epic_id: u32, status: Status) -> Result<()> {
