@@ -1,36 +1,97 @@
 use std::fs;
 
 use anyhow::Result;
+use anyhow::Context;
+use anyhow::anyhow;
 
 use crate::models::{DBState, Epic, Story, Status};
 
 pub struct JiraDatabase {
+    // Struct wraps an object that implements the Database trait
     database: Box<dyn Database>
 }
 
 impl JiraDatabase {
     pub fn new(file_path: String) -> Self {
-        todo!()
+        // Must be able to create new database for MockDB in test module and for real JSON database
+        Self { database: Box::new(JSONFileDatabase{ file_path}) }
     }
 
     pub fn read_db(&self) -> Result<DBState> {
-        todo!()
+        // Uses the read_db method from the Database trait to read the database
+        self.database.read_db()
     }
     
     pub fn create_epic(&self, epic: Epic) -> Result<u32> {
-        todo!()
+        let mut db_state = self.read_db()?;
+        
+        let item_id = db_state.last_item_id + 1;
+        
+        db_state.epics.insert(item_id, epic);
+        db_state.last_item_id = item_id;
+        
+        self.database.write_db(&db_state)?;
+        Ok(item_id)
     }
     
     pub fn create_story(&self, story: Story, epic_id: u32) -> Result<u32> {
-        todo!()
+        let mut db_state = self.read_db()?;
+        
+        let item_id = db_state.last_item_id + 1;
+        
+        // Check if the epic_id is valid
+        if db_state.epics.keys().any(|key| *key==epic_id){
+            db_state.stories.insert(item_id, story);
+            db_state.last_item_id = item_id;
+            
+            // Need to add the story_id to the related epic
+            db_state.epics.get_mut(&epic_id).unwrap().stories.push(item_id);
+
+            self.database.write_db(&db_state)?;
+            Ok(item_id)
+        }
+        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
+
     }
     
     pub fn delete_epic(&self, epic_id: u32) -> Result<()> {
-        todo!()
+        let mut db_state = self.read_db()?;
+        
+        // Check if the epic_id is valid
+        if db_state.epics.keys().any(|key| *key==epic_id){
+            
+            // The function needs to delete the associated stories first
+            let story_keys = &db_state.epics.get(&epic_id).unwrap().stories;
+            for story_id in story_keys.clone() {
+                self.delete_story(epic_id, story_id)?;
+            }
+            // The function then needs to delete the epic
+            db_state.epics.remove(&epic_id);
+            // The function will then write to the database
+            self.database.write_db(&db_state)?;
+            Ok(())
+        }
+
+        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
+
     }
     
     pub fn delete_story(&self,epic_id: u32, story_id: u32) -> Result<()> {
-        todo!()
+        let mut db_state = self.read_db()?;
+        
+        // Check if the epic_id and the story_id are valid
+        if db_state.epics.keys().any(|key| *key==epic_id)&&db_state.stories.keys().any(|key| *key==story_id){
+            
+            // The function needs to delete the story association in the epic
+            db_state.epics.get_mut(&epic_id).unwrap().stories.retain(|id| *id!=story_id);
+            // The function then needs to delete the story
+            db_state.stories.remove(&story_id);
+            // The function will then write to the database
+            self.database.write_db(&db_state)?;
+            Ok(())
+        }
+
+        else {Err(anyhow!("Invalid epic_id provided: {}", epic_id))}
     }
     
     pub fn update_epic_status(&self, epic_id: u32, status: Status) -> Result<()> {
@@ -51,7 +112,15 @@ struct JSONFileDatabase {
     pub file_path: String
 }
 
+impl JSONFileDatabase {
+    fn new(file_path: String) -> Self {
+    JSONFileDatabase { file_path }
+    }
+}
+
 impl Database for JSONFileDatabase {
+    
+
     fn read_db(&self) -> Result<DBState> {
         let db_content = fs::read_to_string(&self.file_path)?;
         let parsed: DBState = serde_json::from_str(&db_content)?;
@@ -81,7 +150,6 @@ pub mod test_utils {
 
     impl Database for MockDB {
         fn read_db(&self) -> Result<DBState> {
-            // TODO: fix this error by deriving the appropriate traits for Story
             let state = self.last_written_state.borrow().clone();
             Ok(state)
         }
@@ -102,10 +170,10 @@ mod tests {
 
     #[test]
     fn create_epic_should_work() {
+        // Create initialized JiraDatabase struct
         let db = JiraDatabase { database: Box::new(MockDB::new()) };
         let epic = Epic::new("".to_owned(), "".to_owned());
 
-        // TODO: fix this error by deriving the appropriate traits for Epic
         let result = db.create_epic(epic.clone());
         
         assert_eq!(result.is_ok(), true);
