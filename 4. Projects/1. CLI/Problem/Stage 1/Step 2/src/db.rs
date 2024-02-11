@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
+use std::fs;
 
 use crate::models::{DBState, Epic, Story, Status};
 
@@ -9,7 +10,7 @@ trait Database {
     fn write_db(&self, db_state: &DBState) -> Result<()>;
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct JSONFileDatabase {
     pub file_path: String
 }
@@ -22,7 +23,7 @@ impl Database for JSONFileDatabase {
 
     fn write_db(&self, db_state: &DBState) -> Result<()> {
         let database_state_string = serde_json::to_string(&db_state).expect("JSON was not correctly created from the database state");
-        database_state_string.write(self.file_path).expect("JSON was not correctly written to file path");
+        fs::write(&self.file_path, database_state_string).expect("JSON was not correctly written to file path");
         Ok(())
     }
 }

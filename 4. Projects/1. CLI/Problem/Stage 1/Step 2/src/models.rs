@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use core::fmt::Debug;
+use serde::Deserialize;
+use serde::Serialize;
 
-// TODO: derive the appropriate traits
+#[derive(Debug, PartialEq, Serialize, Deserialize)]// TODO: derive the appropriate traits
 pub enum Status {
     Open,
     InProgress,
@@ -8,7 +11,7 @@ pub enum Status {
     Closed
 }
 
-// TODO: derive the appropriate traits
+#[derive(Debug, PartialEq, Serialize, Deserialize)]// TODO: derive the appropriate traits
 pub struct Epic {
     pub name: String,
     pub description: String,
@@ -27,7 +30,8 @@ impl Epic {
     }
 }
 
-// TODO: derive the appropriate traits
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]// TODO: derive the appropriate traits
 pub struct Story {
     pub name: String,
     pub description: String,
@@ -44,9 +48,15 @@ impl Story {
     }
 }
 
-// TODO: derive the appropriate traits
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct DBState {
     pub last_item_id: u32,
     pub epics: HashMap<u32, Epic>,
     pub stories: HashMap<u32, Story>
+}
+
+impl Debug for DBState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DBState {{ last_item_id: {}, epics: {:?}, stories: {:?} }}", self.last_item_id, self.epics, self.stories)
+    }
 }

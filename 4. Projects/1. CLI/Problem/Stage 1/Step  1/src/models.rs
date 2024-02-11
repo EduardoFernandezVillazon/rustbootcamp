@@ -33,6 +33,7 @@ impl Story {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct DBState {
     // This struct represents the entire db state which includes the last_item_id, epics, and stories
     pub last_item_id: u32,
