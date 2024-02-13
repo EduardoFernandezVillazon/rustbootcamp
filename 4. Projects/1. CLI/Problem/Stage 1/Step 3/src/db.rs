@@ -60,6 +60,7 @@ impl JiraDatabase {
         // Check if the epic_id is valid
             
             // The function needs to delete the associated stories first
+            // Previously I had tried to remove the sorties using the self.delete_stories method, however, self was not borrowed mutably, so this failed.
             for story_id in &db_state.epics.get(&epic_id).ok_or_else(|| anyhow!("Could not find epic {} in dstabase!", epic_id))?.stories {
                 db_state.stories.remove(&story_id).with_context(||format!("Failed to remove story with story_id={story_id}"))?;
             }
