@@ -13,6 +13,8 @@ use page_helpers::*;
 pub trait Page {
     fn draw_page(&self) -> Result<()>;
     fn handle_input(&self, input: &str) -> Result<Option<Action>>;
+    fn check_story_id(&self, story_id: &u32) -> bool{false}
+    fn check_epic_id(&self, epic_id: &u32) -> bool{false}
 }
 
 pub struct HomePage {
@@ -34,12 +36,35 @@ impl Page for HomePage {
         Ok(())
     }
 
+    fn check_epic_id(&self, &epic_id: &u32) -> bool{
+        let db_state = self.db.read_db();
+        match db_state {
+            Ok(db_state) => {
+                return db_state.epics.contains_key(&epic_id);
+            },
+            Err(_) => false
+            
+        }
+    }
+
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
         match input {
             "q" => Ok(Some(Action::Exit)),
             "c" => Ok(Some(Action::CreateEpic)),
-            id @ ":{id}:" => Ok(Some(Action::NavigateToEpicDetail { epic_id: id.parse().unwrap() })),
-            _ => Ok(None)
+            _ => {
+                
+                if input.split(":").collect::<String>().trim().parse::<u32>().is_ok() {
+                    let epic_id = input.split(":").collect::<String>().trim().parse::<u32>().unwrap();
+                    let db_state = self.db.read_db()?;
+                    if self.check_epic_id(&epic_id){
+                        return Ok(Some(Action::NavigateToEpicDetail { epic_id : epic_id }));
+                    }else{
+                        Ok(None)
+                    }
+                }else{
+                Ok(None)
+                }
+            }
         }
     }
 }
@@ -76,16 +101,47 @@ impl Page for EpicDetail {
         Ok(())
     }
 
+    fn check_story_id (&self, &story_id: &u32) -> bool{
+        let db_state = self.db.read_db();
+        match db_state {
+            Ok(db_state) => {
+                let epic = db_state.epics.get(&self.epic_id);
+                match epic {
+                    Some(epic) => {
+                        let stories = &epic.stories;
+                        return stories.contains(&story_id);
+                    },
+                    None => false
+    
+                }
+            },
+            Err(_) => false
+            
+        }
+    }
+
+
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
         match input {
         "p" => Ok(Some(Action::NavigateToPreviousPage)),
         "u" => Ok(Some(Action::UpdateEpicStatus { epic_id: self.epic_id })),
         "d" => Ok(Some(Action::DeleteEpic { epic_id: self.epic_id })),
         "c" => Ok(Some(Action::CreateStory { epic_id: self.epic_id })),
-        id @ ":{id}:" => Ok(Some(Action::NavigateToStoryDetail { epic_id: self.epic_id, story_id: id.parse().unwrap() })),
-        _ => Ok(None)
+        _ => {
+            if input.split(":").collect::<String>().trim().parse::<u32>().is_ok() {
+                let story_id = input.split(":").collect::<String>().trim().parse::<u32>().unwrap();
+                if self.check_story_id(&story_id) {
+                    Ok(Some(Action::NavigateToStoryDetail { epic_id: self.epic_id, story_id: story_id })) 
+                }else{
+                    Ok(None)
+                 }  
+            
+            }else{
+            Ok(None)
+            }  
     }
     }
+}
 }
 
 pub struct StoryDetail {
