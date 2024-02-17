@@ -1,7 +1,24 @@
 use ellipse::Ellipse;
 
 pub fn get_column_string(text: &str, width: usize) -> String {
-    todo!() // use the truncate_ellipse function from the ellipse crate
+    
+    if width <= 3 {
+        let mut truncated = text.truncate_ellipse(width).to_string();
+        while truncated.len() > width { truncated.remove(0); };
+        return truncated
+    }
+    else if width >= text.len() {
+        let mut text = text.to_string();
+        while text.len() < width { text.push(' ');};
+        return text
+        }
+    
+    else {
+        let mut truncated = text.truncate_ellipse(width-3).to_string();
+        return truncated
+    }
+
+
 }
 
 #[cfg(test)]
