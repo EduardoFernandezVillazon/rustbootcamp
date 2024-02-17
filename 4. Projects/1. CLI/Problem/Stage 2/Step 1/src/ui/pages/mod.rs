@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::fmt::Display;
 
 use itertools::Itertools;
 use anyhow::Result;
@@ -6,6 +7,8 @@ use anyhow::anyhow;
 
 use crate::db::JiraDatabase;
 use crate::models::Action;
+use crate::models::Epic;
+use crate::models::Story;
 
 mod page_helpers;
 use page_helpers::*;
@@ -22,12 +25,15 @@ pub struct HomePage {
 }
 impl Page for HomePage {
     fn draw_page(&self) -> Result<()> {
+        let db_state = self.db.read_db()?;
         println!("----------------------------- EPICS -----------------------------");
         println!("     id     |               name               |      status      ");
 
-        // TODO: print out epics using get_column_string(). also make sure the epics are sorted by id
 
-
+        for key in db_state.epics.keys() {   
+            let epic: &Epic = db_state.epics.get(key).unwrap();
+            println!(" {} | {} | {}",get_column_string(&key.to_string(), 12), get_column_string(&epic.name, 34), get_column_string(format!("{}", epic.status).as_str(), 18));
+        }
         println!();
         println!();
 
@@ -82,8 +88,9 @@ impl Page for EpicDetail {
         println!("------------------------------ EPIC ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
 
-        // TODO: print out epic details using get_column_string()
-  
+        println!("{} | {} | {} | {}",get_column_string(&self.epic_id.to_string(), 6), get_column_string(&epic.name, 14), get_column_string(&epic.description, 29), get_column_string(format!("{}", epic.status).as_str(), 14));
+
+
         println!();
 
         println!("---------------------------- STORIES ----------------------------");
@@ -91,7 +98,11 @@ impl Page for EpicDetail {
 
         let stories = &db_state.stories;
 
-        // TODO: print out stories using get_column_string(). also make sure the stories are sorted by id
+        for key in stories.keys() {   
+            let story: &Story = stories.get(key).unwrap();
+            println!(" {} | {} | {}",get_column_string(&key.to_string(), 12), get_column_string(&story.name, 34), get_column_string(format!("{}", story.status).as_str(), 18));
+        }
+
 
         println!();
         println!();
@@ -159,6 +170,7 @@ impl Page for StoryDetail {
         println!("  id  |     name     |         description         |    status    ");
         
         // TODO: print out story details using get_column_string()
+        println!("{} | {} | {} | {}",get_column_string(&self.story_id.to_string(), 6), get_column_string(&story.name, 14), get_column_string(&story.description, 29), get_column_string(format!("{}", story.status).as_str(), 14));
         
         println!();
         println!();
