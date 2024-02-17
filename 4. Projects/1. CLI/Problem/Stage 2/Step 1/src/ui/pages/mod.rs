@@ -25,6 +25,7 @@ impl Page for HomePage {
 
         // TODO: print out epics using get_column_string(). also make sure the epics are sorted by id
 
+
         println!();
         println!();
 
@@ -34,7 +35,12 @@ impl Page for HomePage {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "q" => Ok(Some(Action::Exit)),
+            "c" => Ok(Some(Action::CreateEpic)),
+            id @ ":{id}:" => Ok(Some(Action::NavigateToEpicDetail { epic_id: id.parse().unwrap() })),
+            _ => Ok(None)
+        }
     }
 }
 
@@ -71,7 +77,14 @@ impl Page for EpicDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+        "p" => Ok(Some(Action::NavigateToPreviousPage)),
+        "u" => Ok(Some(Action::UpdateEpicStatus { epic_id: self.epic_id })),
+        "d" => Ok(Some(Action::DeleteEpic { epic_id: self.epic_id })),
+        "c" => Ok(Some(Action::CreateStory { epic_id: self.epic_id })),
+        id @ ":{id}:" => Ok(Some(Action::NavigateToStoryDetail { epic_id: self.epic_id, story_id: id.parse().unwrap() })),
+        _ => Ok(None)
+    }
     }
 }
 
@@ -100,7 +113,13 @@ impl Page for StoryDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "p" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(Some(Action::UpdateStoryStatus { story_id: self.story_id })),
+            "d" => Ok(Some(Action::DeleteStory { epic_id: self.epic_id, story_id: self.story_id })),
+            _ => Ok(None)
+    
+        }
     }
 }
 
