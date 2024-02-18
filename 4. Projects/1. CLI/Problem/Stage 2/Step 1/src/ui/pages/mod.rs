@@ -30,7 +30,7 @@ impl Page for HomePage {
         println!("     id     |               name               |      status      ");
 
 
-        for key in db_state.epics.keys() {   
+        for key in db_state.epics.keys().sorted() {   
             let epic: &Epic = db_state.epics.get(key).unwrap();
             println!(" {} | {} | {}",get_column_string(&key.to_string(), 12), get_column_string(&epic.name, 34), get_column_string(format!("{}", epic.status).as_str(), 18));
         }
