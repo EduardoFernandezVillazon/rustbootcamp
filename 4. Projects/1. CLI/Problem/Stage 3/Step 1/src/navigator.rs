@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result, Context, Ok};
 use std::rc::Rc;
+use crate::models::{Status, Epic, Story};
 
 use crate::{ui::{Page, HomePage, EpicDetail, StoryDetail, Prompts}, db::JiraDatabase, models::Action};
 
@@ -11,44 +12,73 @@ pub struct Navigator {
 
 impl Navigator {
     pub fn new(db: Rc<JiraDatabase>) -> Self {
-        todo!()
+        return Navigator {
+        pages: vec![Box::new(HomePage{db: db.clone()})],
+        prompts: Prompts::new(),
+        db
+        }
     }
 
     pub fn get_current_page(&self) -> Option<&Box<dyn Page>> {
-        todo!() // this should always return the last element in the pages vector
+
+        return Some(&self.pages[&self.pages.len() - 1]);
+        // this should always return the last element in the pages vector
     }
 
     pub fn handle_action(&mut self, action: Action) -> Result<()> {
         match action {
             Action::NavigateToEpicDetail { epic_id } => {
-                todo!() // create a new EpicDetail instance and add it to the pages vector
+                let epic_view: Box<dyn Page> = Box::new(EpicDetail{
+                    epic_id,
+                    db: self.db.clone()
+                });
+                self.pages.push(epic_view);
             }
             Action::NavigateToStoryDetail { epic_id, story_id } => {
-                todo!() // create a new StoryDetail instance and add it to the pages vector
+                let story_view: Box<dyn Page> = Box::new(StoryDetail{
+                    epic_id,
+                    story_id,
+                    db: self.db.clone()
+                });
+                self.pages.push(story_view);
             }
             Action::NavigateToPreviousPage => {
-                todo!() // remove the last page from the pages vector
+                self.pages.pop();
             }
             Action::CreateEpic => {
-                todo!() // prompt the user to create a new epic and persist it in the database
+                let new_epic : Epic = (self.prompts.create_epic)();
+                let new_id = self.db.create_epic(new_epic)?;
+                println!("Epic created successfully with id: {}", new_id);
             }
             Action::UpdateEpicStatus { epic_id } => {
-                todo!() // prompt the user to update status and persist it in the database
+                let new_epic_status : Status = (self.prompts.update_status)().unwrap();
+                self.db.update_epic_status(epic_id, new_epic_status);
+                println!("Status updated successfully");
             }
             Action::DeleteEpic { epic_id } => {
-                todo!() // prompt the user to delete the epic and persist it in the database
+                if (self.prompts.delete_epic)(){
+                    self.db.delete_epic(epic_id);
+                    println!("Epic with id {} deleted successfully", epic_id);
+                };
             }
             Action::CreateStory { epic_id } => {
-                todo!() // prompt the user to create a new story and persist it in the database
+                let new_story : Story = (self.prompts.create_story)();
+                let new_id = self.db.create_story(new_story, epic_id)?;
+                println!("Story created successfully with id: {}", new_id);
             }
             Action::UpdateStoryStatus { story_id } => {
-                todo!() // prompt the user to update status and persist it in the database
+                let new_story_status : Status = (self.prompts.update_status)().unwrap();
+                self.db.update_story_status(story_id, new_story_status);
+                println!("Status updated successfully for story_id: {}", story_id);
             }
             Action::DeleteStory { epic_id, story_id } => {
-                todo!() // prompt the user to delete the story and persist it in the database
+                if (self.prompts.delete_story)(){
+                    self.db.delete_story(epic_id, story_id);
+                    println!("Story with id {}, previously linked to Epic with id {} deleted successfully", story_id, epic_id);
+                }
             }
             Action::Exit => {
-                todo!() // remove all pages from the pages vector
+                self.pages.clear();
             },
         }
 
