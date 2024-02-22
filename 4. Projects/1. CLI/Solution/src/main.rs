@@ -30,6 +30,7 @@ fn main() {
             };
 
             let user_input = get_user_input();
+            println!(" {} ", user_input);
 
             match page.handle_input(user_input.trim()) {
                 Err(error) => {
