@@ -158,7 +158,7 @@ Rust has a minimal runtime, which means we will need to use several third-party 
 
 One of the most popular server frameworks for Rust is [Axum](https://github.com/tokio-rs/axum). Axum is an ergonomic and modular web framework built by the Tokio team.
 
-I'll explain certain concepts in Axum throughout this project but I highly recommend reading through the [Axum crate docs](https://docs.rs/axum/0.6.20/axum/index.html) and checkout [Axum tutorials](https://github.com/tokio-rs/axum/blob/main/ECOSYSTEM.md#tutorials) to get familiar with the framework.
+I'll explain certain concepts in Axum throughout this project but I highly recommend reading through the [Axum crate docs](https://doecs.rs/axum/0.6.20/axum/index.html) and checkout [Axum tutorials](https://github.com/tokio-rs/axum/blob/main/ECOSYSTEM.md#tutorials) to get familiar with the framework.
 
 ### Serde
 

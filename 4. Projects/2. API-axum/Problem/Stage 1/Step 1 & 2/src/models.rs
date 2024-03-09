@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use chrono::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct Question {
@@ -12,7 +14,17 @@ pub struct QuestionDetail {
     pub title: String,
     pub description: String,
     pub created_at: String,
-    pub updated_at: String,
+}
+
+impl QuestionDetail {
+    pub fn new(question: Question) -> Self {
+        Self {
+            question_uuid: Uuid::new_v4().to_string(),
+            title: question.title,
+            description: question.description,
+            created_at: Utc::now().to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -32,6 +44,17 @@ pub struct AnswerDetail {
     pub question_uuid: String,
     pub content: String,
     pub created_at: String,
+}
+
+impl AnswerDetail {
+    pub fn new(answer: Answer) -> Self {
+        Self {
+            answer_uuid: Uuid::new_v4().to_string(),
+            question_uuid: answer.question_uuid,
+            content: answer.content,
+            created_at: Utc::now().to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
