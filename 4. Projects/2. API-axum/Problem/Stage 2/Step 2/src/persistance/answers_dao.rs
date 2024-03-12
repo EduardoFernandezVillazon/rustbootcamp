@@ -1,5 +1,8 @@
 use async_trait::async_trait;
 use sqlx::PgPool;
+use sqlx::error::DatabaseError;
+use uuid::Uuid;
+use time::{PrimitiveDateTime, OffsetDateTime};
 
 use crate::models::{postgres_error_codes, Answer, AnswerDetail, DBError};
 
@@ -16,84 +19,76 @@ pub struct AnswersDaoImpl {
 
 impl AnswersDaoImpl {
     pub fn new(db: PgPool) -> Self {
-        todo!() // return an instance of AnswersDaoImpl
+        AnswersDaoImpl { 
+            db: db 
+        }
     }
 }
 
 #[async_trait]
 impl AnswersDao for AnswersDaoImpl {
     async fn create_answer(&self, answer: Answer) -> Result<AnswerDetail, DBError> {
-        todo!();
-        // Use the `sqlx::types::Uuid::parse_str` method to parse the `question_uuid` field
-        // in `Answer` into a `Uuid` type.
-        // parse_str docs: https://docs.rs/sqlx/latest/sqlx/types/struct.Uuid.html#method.parse_str
-        //
-        // If `parse_str` returns an error, map the error to a `DBError::InvalidUUID` error
-        // and early return from this function.
-        let uuid = todo!();
 
-        // Make a database query to insert a new answer.
-        // Here is the SQL query:
-        // ```
-        // INSERT INTO answers ( question_uuid, content )
-        // VALUES ( $1, $2 )
-        // RETURNING *
-        // ```
-        // If executing the query results in an error, check to see if
-        // the error code matches `postgres_error_codes::FOREIGN_KEY_VIOLATION`.
-        // If so early return the `DBError::InvalidUUID` error. Otherwise early return
-        // the `DBError::Other` error.
-        let record = todo!();
+        let uuid = Uuid::parse_str(&answer.question_uuid).map_err(|e| DBError::InvalidUUID(answer.question_uuid.clone()))?;
 
-        // Populate the AnswerDetail fields using `record`.
+        let now_odt = OffsetDateTime::now_utc();
+        let now_pdt = PrimitiveDateTime::new(now_odt.date(), now_odt.time());
+        let record = sqlx::query!(
+            "INSERT INTO answers ( question_uuid, content, answer_uuid, created_at )
+            VALUES ( $1, $2, $3, $4 )
+            RETURNING *", uuid, answer.content, Uuid::new_v4(), now_pdt)
+            .fetch_one(&self.db)
+            .await
+            .map_err(|e| match e{
+                sqlx::Error::Database(ref f) => match f.code() {
+                    Some(std::borrow::Cow::Borrowed(postgres_error_codes::FOREIGN_KEY_VIOLATION)) => DBError::InvalidUUID(answer.question_uuid.clone()),
+                    _ => DBError::Other(Box::new(e)),
+                },
+                _ => DBError::Other(Box::new(e))
+            }
+            )?;
+
+
         Ok(AnswerDetail {
-            answer_uuid: todo!(),
-            question_uuid: todo!(),
-            content: todo!(),
-            created_at: todo!(),
+            answer_uuid: record.answer_uuid.to_string(),
+            question_uuid: record.question_uuid.to_string(),
+            content: record.content,
+            created_at: record.created_at.to_string(),
         })
     }
 
     async fn delete_answer(&self, answer_uuid: String) -> Result<(), DBError> {
-        todo!();
-        // Use the `sqlx::types::Uuid::parse_str` method to parse `answer_uuid` into a `Uuid` type.
-        // parse_str docs: https://docs.rs/sqlx/latest/sqlx/types/struct.Uuid.html#method.parse_str
-        //
-        // If `parse_str` returns an error, map the error to a `DBError::InvalidUUID` error
-        // and early return from this function.
-        let uuid = todo!();
 
-        // TODO: Make a database query to delete an answer given the answer uuid.
-        // Here is the SQL query:
-        // ```
-        // DELETE FROM answers WHERE answer_uuid = $1
-        // ```
-        // If executing the query results in an error, map that error
-        // to a `DBError::Other` error and early return from this function.
+        let uuid = Uuid::parse_str(&answer_uuid).map_err(|e| DBError::InvalidUUID(answer_uuid))?;
+
+        let query = sqlx::query!("
+        DELETE FROM answers WHERE answer_uuid = $1
+        RETURNING answer_uuid", uuid)
+        .fetch_one(&self.db)
+        .await
+        .map_err(|e| DBError::Other(Box::new(e)))?;
+
+        info!("Answer with uuid {:?} successfully deleted", query);
 
         Ok(())
     }
 
     async fn get_answers(&self, question_uuid: String) -> Result<Vec<AnswerDetail>, DBError> {
-        todo!();
-        // Use the `sqlx::types::Uuid::parse_str` method to parse `question_uuid` into a `Uuid` type.
-        // parse_str docs: https://docs.rs/sqlx/latest/sqlx/types/struct.Uuid.html#method.parse_str
-        //
-        // If `parse_str` returns an error, map the error to a `DBError::InvalidUUID` error
-        // and early return from this function.
-        let uuid = todo!();
 
-        // Make a database query to get all answers associated with a question uuid.
-        // Here is the SQL query:
-        // ```
-        // SELECT * FROM answers WHERE question_uuid = $1
-        // ```
-        // If executing the query results in an error, map that error
-        // to a `DBError::Other` error and early return from this function.
-        let records = todo!();
+        let uuid = Uuid::parse_str(&question_uuid).map_err(|e| DBError::InvalidUUID(question_uuid))?;
 
-        // Iterate over `records` and map each record to a `AnswerDetail` type
-        let answers = todo!();
+        let records = sqlx::query!("
+        SELECT * FROM answers WHERE question_uuid = $1", uuid)
+        .fetch_all(&self.db)
+        .await
+        .map_err(|e| DBError::Other(Box::new(e)))?;
+
+        let answers = records.iter().map(|record| AnswerDetail{
+            answer_uuid: record.answer_uuid.to_string(),
+            question_uuid: record.question_uuid.to_string(),
+            content: record.content.clone(),
+            created_at: record.created_at.to_string(),
+        }).collect::<Vec<AnswerDetail>>();
 
         Ok(answers)
     }
