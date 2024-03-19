@@ -19,7 +19,8 @@ pub async fn create_question(
     })
 }
 
-pub async fn read_questions(// TODO: add questions_dao from app state as an argument
+pub async fn read_questions(
+    State(AppState { questions_dao, .. }): State<AppState>,
 ) -> impl IntoResponse {
     Json(vec![QuestionDetail {
         question_uuid: "question_uuid".to_owned(),
@@ -30,7 +31,7 @@ pub async fn read_questions(// TODO: add questions_dao from app state as an argu
 }
 
 pub async fn delete_question(
-    // TODO: add questions_dao from app state as an argument
+    State(AppState { questions_dao, .. }): State<AppState>,
     Json(question_uuid): Json<QuestionId>,
 ) {
     // ...
@@ -52,7 +53,7 @@ pub async fn create_answer(
 }
 
 pub async fn read_answers(
-    // TODO: add answers_dao from app state as an argument
+    State(AppState { answers_dao, .. }): State<AppState>,
     Json(question_uuid): Json<QuestionId>,
 ) -> impl IntoResponse {
     Json(vec![AnswerDetail {
@@ -64,7 +65,7 @@ pub async fn read_answers(
 }
 
 pub async fn delete_answer(
-    // TODO: add answers_dao from app state as an argument
+    State(AppState { answers_dao, .. }): State<AppState>,
     Json(answer_uuid): Json<AnswerId>,
 ) {
     // ...
