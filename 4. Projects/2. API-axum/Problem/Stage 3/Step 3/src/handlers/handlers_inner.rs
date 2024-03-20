@@ -3,6 +3,8 @@ use crate::{
     persistance::{answers_dao::AnswersDao, questions_dao::QuestionsDao},
 };
 
+use std::sync::Arc;
+
 #[derive(Debug, PartialEq)]
 pub enum HandlerError {
     BadRequest(String),
@@ -17,7 +19,7 @@ impl HandlerError {
 
 pub async fn create_question(
     question: Question,
-    questions_dao: &(dyn QuestionsDao + Sync + Send),
+    questions_dao: Arc<dyn QuestionsDao + Sync + Send>,
 ) -> Result<QuestionDetail, HandlerError> {
     let question = questions_dao.create_question(question).await;
     match question {
@@ -30,7 +32,7 @@ pub async fn create_question(
 }
 
 pub async fn read_questions(
-    questions_dao: &(dyn QuestionsDao + Sync + Send),
+    questions_dao: Arc<dyn QuestionsDao + Sync + Send>,
 ) -> Result<Vec<QuestionDetail>, HandlerError> {
     let questions = questions_dao.get_questions().await;
 
@@ -45,7 +47,7 @@ pub async fn read_questions(
 
 pub async fn delete_question(
     question_uuid: QuestionId,
-    questions_dao: &(dyn QuestionsDao + Sync + Send),
+    questions_dao: Arc<dyn QuestionsDao + Sync + Send>,
 ) -> Result<(), HandlerError> {
     let result = questions_dao
         .delete_question(question_uuid.question_uuid)
@@ -60,7 +62,7 @@ pub async fn delete_question(
 
 pub async fn create_answer(
     answer: Answer,
-    answers_dao: &(dyn AnswersDao + Send + Sync),
+    answers_dao: Arc<dyn AnswersDao + Send + Sync>,
 ) -> Result<AnswerDetail, HandlerError> {
     let answer = answers_dao.create_answer(answer).await;
 
@@ -79,7 +81,7 @@ pub async fn create_answer(
 
 pub async fn read_answers(
     question_uuid: QuestionId,
-    answers_dao: &(dyn AnswersDao + Send + Sync),
+    answers_dao: Arc<dyn AnswersDao + Send + Sync>,
 ) -> Result<Vec<AnswerDetail>, HandlerError> {
     let answers = answers_dao.get_answers(question_uuid.question_uuid).await;
 
@@ -94,7 +96,7 @@ pub async fn read_answers(
 
 pub async fn delete_answer(
     answer_uuid: AnswerId,
-    answers_dao: &(dyn AnswersDao + Send + Sync),
+    answers_dao: Arc<dyn AnswersDao + Send + Sync>,
 ) -> Result<(), HandlerError> {
     let result = answers_dao.delete_answer(answer_uuid.answer_uuid).await;
 
@@ -234,9 +236,9 @@ mod tests {
 
         questions_dao.mock_create_question(Ok(question_detail.clone()));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = create_question(question, questions_dao.as_ref()).await;
+        let result = create_question(question, questions_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), question_detail);
@@ -253,9 +255,9 @@ mod tests {
 
         questions_dao.mock_create_question(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = create_question(question, questions_dao.as_ref()).await;
+        let result = create_question(question, questions_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -277,9 +279,9 @@ mod tests {
 
         questions_dao.mock_get_questions(Ok(vec![question_detail.clone()]));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = read_questions(questions_dao.as_ref()).await;
+        let result = read_questions(questions_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), vec![question_detail]);
@@ -291,9 +293,9 @@ mod tests {
 
         questions_dao.mock_get_questions(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = read_questions(questions_dao.as_ref()).await;
+        let result = read_questions(questions_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -312,9 +314,9 @@ mod tests {
 
         questions_dao.mock_delete_question(Ok(()));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = delete_question(question_id, questions_dao.as_ref()).await;
+        let result = delete_question(question_id, questions_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ());
@@ -330,9 +332,9 @@ mod tests {
 
         questions_dao.mock_delete_question(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let questions_dao: Box<dyn QuestionsDao + Send + Sync> = Box::new(questions_dao);
+        let questions_dao: Arc<dyn QuestionsDao + Send + Sync> = Arc::new(questions_dao);
 
-        let result = delete_question(question_id, questions_dao.as_ref()).await;
+        let result = delete_question(question_id, questions_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -359,9 +361,9 @@ mod tests {
 
         answers_dao.mock_create_answer(Ok(answer_detail.clone()));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = create_answer(answer, answers_dao.as_ref()).await;
+        let result = create_answer(answer, answers_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), answer_detail);
@@ -378,9 +380,9 @@ mod tests {
 
         answers_dao.mock_create_answer(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = create_answer(answer, answers_dao.as_ref()).await;
+        let result = create_answer(answer, answers_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -403,9 +405,9 @@ mod tests {
             "oh no!",
         )))));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = create_answer(answer, answers_dao.as_ref()).await;
+        let result = create_answer(answer, answers_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -431,9 +433,9 @@ mod tests {
 
         answers_dao.mock_get_answers(Ok(vec![answer_detail.clone()]));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = read_answers(question_id, answers_dao.as_ref()).await;
+        let result = read_answers(question_id, answers_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), vec![answer_detail]);
@@ -449,9 +451,9 @@ mod tests {
 
         answers_dao.mock_get_answers(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = read_answers(question_id, answers_dao.as_ref()).await;
+        let result = read_answers(question_id, answers_dao).await;
 
         assert!(result.is_err());
         assert!(
@@ -470,9 +472,9 @@ mod tests {
 
         answers_dao.mock_delete_answer(Ok(()));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = delete_answer(answer_id, answers_dao.as_ref()).await;
+        let result = delete_answer(answer_id, answers_dao).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ());
@@ -488,9 +490,9 @@ mod tests {
 
         answers_dao.mock_delete_answer(Err(DBError::InvalidUUID("test".to_owned())));
 
-        let answers_dao: Box<dyn AnswersDao + Send + Sync> = Box::new(answers_dao);
+        let answers_dao: Arc<dyn AnswersDao + Send + Sync> = Arc::new(answers_dao);
 
-        let result = delete_answer(answer_id, answers_dao.as_ref()).await;
+        let result = delete_answer(answer_id, answers_dao).await;
 
         assert!(result.is_err());
         assert!(
